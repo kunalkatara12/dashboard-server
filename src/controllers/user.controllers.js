@@ -1,4 +1,6 @@
-import { User } from "../models/User.models.js";
+import { ManageUser } from "../models/manageUser.models.js";
+import { Role } from "../models/role.models.js";
+import { User } from "../models/user.models.js";
 import asyncHandler from "../utils/asyncHandler.utils.js";
 
 const generateTokens = async (userId) => {
@@ -206,7 +208,6 @@ const logoutUser = asyncHandler(async (req, res, next) => {
   }
 });
 
-
 const checkAuthStatus = asyncHandler(async (req, res, next) => {
   try {
     const { _id } = req.user._id;
@@ -232,4 +233,284 @@ const checkAuthStatus = asyncHandler(async (req, res, next) => {
     });
   }
 });
-export { registerUser, loginUser, logoutUser, checkAuthStatus };
+
+const addManageUser = asyncHandler(async (req, res, next) => {
+  try {
+    const { firstName, lastName, age, role } = req.body;
+    const { _id } = req.user._id;
+    const user = await User.findById(_id);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "User not found",
+      });
+    }
+    const manageUser = await ManageUser.create({
+      firstName,
+      lastName,
+      age,
+      role,
+    });
+    if (!manageUser) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "Manage User not created",
+      });
+    }
+    user.manageUsers.push(manageUser._id);
+    await user.save({
+      validateBeforeSave: false,
+    });
+    return res.status(200).json({
+      success: true,
+      data: { manageUser },
+      message: "Manage User created successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      data: { error },
+      message: "Internal server error",
+    });
+  }
+});
+const updateManageUser = asyncHandler(async (req, res, next) => {
+  try {
+    const { firstName, lastName, age, role, manageUserId } = req.body;
+    const { _id } = req.user._id;
+    const user = await User.findById(_id);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "User not found",
+      });
+    }
+    await ManageUser.findByIdAndUpdate(
+      {
+        _id: manageUserId,
+      },
+      {
+        firstName,
+        lastName,
+        age,
+        role,
+      }
+    ).then((oldManageUser) => {
+      if (!oldManageUser) {
+        return res.status(400).json({
+          success: false,
+          data: {},
+          message: "Manage User not found",
+        });
+      }
+      return res.status(200).json({
+        success: true,
+        data: { oldManageUser },
+        message: "Manage User updated successfully",
+      });
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      data: { error },
+      message: "Internal server error",
+    });
+  }
+});
+const getManageUsers = asyncHandler(async (req, res, next) => {
+  try {
+    const { _id } = req.user._id;
+    const user = await User.findById(_id).populate("manageUsers");
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "User not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: { manageUsers: user.manageUsers },
+      message: "Manage Users fetched successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      data: { error },
+      message: "Internal server error",
+    });
+  }
+});
+const deleteManageUser = asyncHandler(async (req, res, next) => {
+  try {
+    const { manageUserId } = req.body;
+    const { _id } = req.user._id;
+    const user = await User.findById(_id);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "User not found",
+      });
+    }
+    await ManageUser.findByIdAndDelete({ _id: manageUserId }).then(
+      (manageUser) => {
+        if (!manageUser) {
+          return res.status(400).json({
+            success: false,
+            data: {},
+            message: "Manage User not found",
+          });
+        }
+        return res.status(200).json({
+          success: true,
+          data: {},
+          message: "Manage User deleted successfully",
+        });
+      }
+    );
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      data: { error },
+      message: "Internal server error",
+    });
+  }
+});
+
+const getAllRoles = asyncHandler(async (req, res, next) => {
+  try {
+    const { _id } = req.user._id;
+    const user = await User.findById(_id).populate("manageRoles");
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "Roles not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: { roles: user.manageRoles },
+      message: "Roles fetched successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      data: { error },
+      message: "Internal server error",
+    });
+  }
+});
+const addRole = asyncHandler(async (req, res, next) => {
+  try {
+    const { roleName, permissions } = req.body;
+    const { _id } = req.user._id;
+    const user = await User.findById(_id);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "User not found",
+      });
+    }
+    const roleExists = await Role.findOne({ name: roleName });
+    if (roleExists) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "Role already exists",
+      });
+    }
+    const role = await Role.create({
+      name: roleName,
+      permissions,
+    });
+    if (!role) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "Role not created",
+      });
+    }
+    user.manageRoles.push(role._id);
+    await user.save({
+      validateBeforeSave: false,
+    });
+    return res.status(200).json({
+      success: true,
+      data: { role },
+      message: "Role created successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      data: { error },
+      message: "Internal server error",
+    });
+  }
+});
+const getRole = asyncHandler(async (req, res, next) => {
+  try {
+    const { manageUserId } = req.body;
+    const { _id } = req.user._id;
+    const user = await User.findById(_id);
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "User not found",
+      });
+    }
+    const manageUser = await ManageUser.findById(manageUserId);
+    if (!manageUser) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "Manage User not found",
+      });
+    }
+    const role = await Role.findById(manageUser.role);
+    if (!role) {
+      return res.status(400).json({
+        success: false,
+        data: {},
+        message: "Role not found",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      data: { role },
+      message: "Role fetched successfully",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      data: { error },
+      message: "Internal server error",
+    });
+  }
+});
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  checkAuthStatus,
+  addManageUser,
+  getManageUsers,
+  updateManageUser,
+  deleteManageUser,
+  addRole,
+  getAllRoles,
+  getRole,
+};

@@ -1,4 +1,5 @@
-import { User } from "../models/User.models.js";
+
+import { User } from "../models/user.models.js";
 import asyncHandler from "../utils/asyncHandler.utils.js";
 import jwt from "jsonwebtoken";
 const { verify } = jwt;

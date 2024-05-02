@@ -19,7 +19,19 @@ const userSchema = new Schema(
     },
     refreshToken:{
         type:String,
-    }
+    },
+    manageUsers: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "ManageUser",
+      },
+    ],
+    manageRoles: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Role",
+      },
+    ],
   },
   {
     timestamps: true,
